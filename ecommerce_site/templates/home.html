@@ -1,0 +1,343 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>E-Shop - Home</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f5f5f5;
+        }
+        
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 30px;
+            text-align: center;
+        }
+        
+        .header h1 {
+            font-size: 2.5rem;
+            margin-bottom: 10px;
+        }
+        
+        .nav {
+            background: #333;
+            overflow: hidden;
+            padding: 15px;
+            text-align: center;
+        }
+        
+        .nav a {
+            color: white;
+            text-decoration: none;
+            padding: 14px 20px;
+            margin: 0 10px;
+            display: inline-block;
+        }
+        
+        .nav a:hover {
+            background: #575757;
+            border-radius: 5px;
+        }
+        
+        /* Search Bar Styles */
+        .search-container {
+            display: inline-block;
+            margin: 0 20px;
+        }
+        
+        .search-form {
+            display: inline-flex;
+            align-items: center;
+        }
+        
+        .search-input {
+            padding: 8px 15px;
+            width: 250px;
+            border: none;
+            border-radius: 25px 0 0 25px;
+            font-size: 14px;
+            outline: none;
+        }
+        
+        .search-btn {
+            padding: 8px 15px;
+            background: #ff6b6b;
+            color: white;
+            border: none;
+            border-radius: 0 25px 25px 0;
+            cursor: pointer;
+        }
+        
+        .search-btn:hover {
+            background: #ff5252;
+        }
+        
+        .cart-count {
+            background: red;
+            border-radius: 50%;
+            padding: 2px 6px;
+            font-size: 12px;
+            margin-left: 5px;
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 30px auto;
+            padding: 20px;
+        }
+        
+        .products {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+            gap: 25px;
+            margin-top: 20px;
+        }
+        
+        .product-card {
+            background: white;
+            border-radius: 10px;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+            overflow: hidden;
+            transition: transform 0.3s;
+        }
+        
+        .product-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 6px 12px rgba(0,0,0,0.15);
+        }
+        
+        .product-image {
+            width: 100%;
+            height: 400px;
+            object-fit: cover;
+            background: #f0f0f0;
+        }
+        
+        .no-image {
+            width: 100%;
+            height: 200px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 48px;
+        }
+        
+        .product-info {
+            padding: 15px;
+        }
+        
+        .product-card h3 {
+            color: #333;
+            margin-bottom: 10px;
+            font-size: 18px;
+        }
+        
+        .product-card p {
+            color: #666;
+            margin-bottom: 10px;
+            line-height: 1.5;
+            font-size: 14px;
+        }
+        
+        .price {
+            font-size: 22px;
+            font-weight: bold;
+            color: #667eea;
+            margin: 10px 0;
+        }
+        
+        .category {
+            display: inline-block;
+            background: #e0e0e0;
+            padding: 5px 10px;
+            border-radius: 5px;
+            font-size: 12px;
+            margin: 5px 0;
+        }
+        
+        .rating {
+            color: #ffc107;
+            margin: 10px 0;
+        }
+        
+        .stock {
+            color: #28a745;
+            font-size: 14px;
+            margin: 5px 0;
+        }
+        
+        .quantity {
+            width: 60px;
+            padding: 5px;
+            margin: 10px 5px 10px 0;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+        }
+        
+        .btn {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 14px;
+            width: 100%;
+            margin-top: 10px;
+        }
+        
+        .btn:hover {
+            opacity: 0.9;
+        }
+        
+        .search-info {
+            margin-bottom: 20px;
+            padding: 10px;
+            background: #e3f2fd;
+            border-radius: 5px;
+        }
+        
+        .empty {
+            text-align: center;
+            padding: 50px;
+            font-size: 18px;
+            color: #666;
+        }
+        
+        footer {
+            background: #333;
+            color: white;
+            text-align: center;
+            padding: 20px;
+            margin-top: 50px;
+        }
+        
+        @media (max-width: 768px) {
+            .products {
+                grid-template-columns: 1fr;
+            }
+            .search-input {
+                width: 150px;
+            }
+            .nav a {
+                display: block;
+                margin: 5px;
+            }
+            .search-container {
+                display: block;
+                margin: 10px auto;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>🛍️ Welcome to E-Shop</h1>
+        <p>Your One-Stop Shopping Destination</p>
+    </div>
+    
+    <div class="nav">
+        <a href="/">🏠 Home</a>
+        
+        <!-- SEARCH BOX - ADDED -->
+        <div class="search-container">
+            <form action="/search/" method="GET" class="search-form">
+                <input type="text" name="q" placeholder="🔍 Search products... (iPhone, Shirt, Book)" value="{{ search_query }}" class="search-input">
+                <button type="submit" class="search-btn">Search</button>
+            </form>
+        </div>
+        
+        <a href="/cart/">🛒 Cart 
+            {% if cart_count > 0 %}
+            <span class="cart-count">{{ cart_count }}</span>
+            {% endif %}
+        </a>
+        {% if user.is_authenticated %}
+            <a href="/orders/">📦 My Orders</a>
+            <a href="/logout/">🚪 Logout ({{ user.username }})</a>
+        {% else %}
+            <a href="/login/">🔐 Login</a>
+            <a href="/register/">📝 Register</a>
+        {% endif %}
+        <a href="/admin/">👑 Admin</a>
+    </div>
+    
+    <div class="container">
+        <h2>🔥 Our Products</h2>
+        
+        <!-- Show search results info -->
+        {% if search_query %}
+        <div class="search-info">
+            🔍 Showing results for: <strong>"{{ search_query }}"</strong>
+            <a href="/" style="float: right;">Clear Search</a>
+        </div>
+        {% endif %}
+        
+        <div class="products">
+            {% if products %}
+                {% for product in products %}
+                <div class="product-card">
+                    {% if product.image %}
+                        <img src="{{ product.image.url }}" alt="{{ product.name }}" class="product-image">
+                    {% else %}
+                        <div class="no-image">
+                            📷
+                        </div>
+                    {% endif %}
+                    
+                    <div class="product-info">
+                        <h3>{{ product.name }}</h3>
+                        <p>{{ product.description|truncatewords:12 }}</p>
+                        <div class="category">{{ product.get_category_display }}</div>
+                        <div class="price">₹{{ product.price }}</div>
+                        <div class="rating">
+                            {% for i in "12345"|make_list %}
+                                {% if forloop.counter <= product.rating %}
+                                    ★
+                                {% else %}
+                                    ☆
+                                {% endif %}
+                            {% endfor %}
+                            ({{ product.rating }})
+                        </div>
+                        
+                        {% if product.stock > 0 %}
+                            <div class="stock">✅ In Stock ({{ product.stock }})</div>
+                            <form action="/add-to-cart/{{ product.id }}/" method="POST">
+                                {% csrf_token %}
+                                <input type="number" name="quantity" value="1" min="1" max="{{ product.stock }}" class="quantity">
+                                <button type="submit" class="btn">🛒 Add to Cart</button>
+                            </form>
+                        {% else %}
+                            <div class="stock" style="color: red;">❌ Out of Stock</div>
+                            <button class="btn" style="background: #ccc;" disabled>Out of Stock</button>
+                        {% endif %}
+                    </div>
+                </div>
+                {% endfor %}
+            {% else %}
+                <div class="empty">
+                    <p>😞 No products found for "{{ search_query }}"</p>
+                    <p>Try searching for: iPhone, Samsung, Shirt, Book, Headphones</p>
+                    <a href="/" style="color: #667eea;">← Back to Home</a>
+                </div>
+            {% endif %}
+        </div>
+    </div>
+    
+    <footer>
+        <p>&copy; 2026 E-Shop. All rights reserved.</p>
+    </footer>
+</body>
+</html>
