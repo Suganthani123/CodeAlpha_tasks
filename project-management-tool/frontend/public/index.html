@@ -1,0 +1,658 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ProjectFlow - Project Management Tool</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/react@18.2.0/umd/react.development.js"></script>
+    <script src="https://unpkg.com/react-dom@18.2.0/umd/react-dom.development.js"></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <style>
+        /* Custom animations and hover effects */
+        .btn-hover {
+            transition: all 0.3s ease;
+        }
+        .btn-hover:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+        }
+        .card-hover {
+            transition: all 0.3s ease;
+        }
+        .card-hover:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 25px rgba(0,0,0,0.15);
+        }
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        .fade-in {
+            animation: fadeIn 0.5s ease-out;
+        }
+    </style>
+</head>
+<body>
+    <div id="root"></div>
+    
+    <script type="text/babel">
+        const { useState, useEffect, useRef } = React;
+        const API_URL = 'http://localhost:5000/api';
+        console.log('API_URL:', API_URL);
+        
+        const Login = ({ onLogin }) => {
+            const [email, setEmail] = useState('');
+            const [password, setPassword] = useState('');
+            const [isRegister, setIsRegister] = useState(false);
+            const [name, setName] = useState('');
+            const [loading, setLoading] = useState(false);
+            
+            const handleSubmit = async (e) => {
+                e.preventDefault();
+                setLoading(true);
+                const endpoint = isRegister ? '/auth/register' : '/auth/login';
+                const body = isRegister ? { name, email, password } : { email, password };
+                
+                try {
+                    const res = await fetch(API_URL + endpoint, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(body)
+                    });
+                    const data = await res.json();
+                    if (res.ok) {
+                        localStorage.setItem('token', data.token);
+                        localStorage.setItem('user', JSON.stringify(data.user));
+                        onLogin(data.user);
+                    } else {
+                        alert(data.message || 'Error');
+                    }
+                } catch (err) {
+                    alert('Backend not running on port 5000');
+                } finally {
+                    setLoading(false);
+                }
+            };
+            
+            return (
+                <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-purple-600 via-pink-500 to-orange-400">
+                    <div className="bg-white rounded-2xl shadow-2xl p-8 max-w-md w-full transform transition-all fade-in">
+                        <div className="text-center mb-6">
+                            <div className="inline-flex items-center justify-center w-20 h-20 bg-gradient-to-br from-purple-600 to-pink-500 rounded-full mb-4">
+                                <i className="fas fa-project-diagram text-white text-3xl"></i>
+                            </div>
+                            <h2 className="text-3xl font-bold bg-gradient-to-r from-purple-600 to-pink-500 bg-clip-text text-transparent">
+                                {isRegister ? 'Create Account' : 'Welcome Back'}
+                            </h2>
+                            <p className="text-gray-500 mt-2">Manage your projects efficiently</p>
+                        </div>
+                        
+                        <form onSubmit={handleSubmit} className="space-y-4">
+                            {isRegister && (
+                                <div>
+                                    <label className="block text-gray-700 text-sm font-semibold mb-2">Full Name</label>
+                                    <input type="text" placeholder="Enter your name" value={name}
+                                        onChange={(e) => setName(e.target.value)}
+                                        className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent" required />
+                                </div>
+                            )}
+                            <div>
+                                <label className="block text-gray-700 text-sm font-semibold mb-2">Email Address</label>
+                                <input type="email" placeholder="you@example.com" value={email}
+                                    onChange={(e) => setEmail(e.target.value)}
+                                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent" required />
+                            </div>
+                            <div>
+                                <label className="block text-gray-700 text-sm font-semibold mb-2">Password</label>
+                                <input type="password" placeholder="••••••••" value={password}
+                                    onChange={(e) => setPassword(e.target.value)}
+                                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent" required />
+                            </div>
+                            <button type="submit" className="btn-hover w-full bg-gradient-to-r from-purple-600 to-pink-500 text-white py-2 rounded-lg font-semibold">
+                                {loading ? 'Please wait...' : (isRegister ? 'Sign Up' : 'Sign In')}
+                            </button>
+                        </form>
+                        
+                        <p className="text-center mt-6">
+                            <button onClick={() => setIsRegister(!isRegister)} className="text-purple-600 hover:text-purple-700 font-semibold">
+                                {isRegister ? 'Already have account? Sign In' : 'Need an account? Sign Up'}
+                            </button>
+                        </p>
+                    </div>
+                </div>
+            );
+        };
+        
+        const Dashboard = ({ user, onLogout, onOpenProject }) => {
+            const [projects, setProjects] = useState([]);
+            const [showModal, setShowModal] = useState(false);
+            const [newProject, setNewProject] = useState({ name: '', description: '' });
+            const [searchTerm, setSearchTerm] = useState('');
+            
+            useEffect(() => { fetchProjects(); }, []);
+            
+            const fetchProjects = async () => {
+                const token = localStorage.getItem('token');
+                const res = await fetch(API_URL + '/projects', {
+                    headers: { 'x-auth-token': token }
+                });
+                if (res.ok) {
+                    const data = await res.json();
+                    setProjects(data);
+                }
+            };
+            
+            const createProject = async (e) => {
+                e.preventDefault();
+                const token = localStorage.getItem('token');
+                await fetch(API_URL + '/projects', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json', 'x-auth-token': token },
+                    body: JSON.stringify(newProject)
+                });
+                setShowModal(false);
+                setNewProject({ name: '', description: '' });
+                fetchProjects();
+            };
+            
+            const filteredProjects = projects.filter(p => 
+                p.name.toLowerCase().includes(searchTerm.toLowerCase())
+            );
+            
+            return (
+                <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100">
+                    <nav className="bg-gradient-to-r from-purple-700 to-pink-600 shadow-lg p-4 sticky top-0 z-10">
+                        <div className="container mx-auto flex justify-between items-center flex-wrap gap-4">
+                            <div className="flex items-center gap-2">
+                                <i className="fas fa-project-diagram text-white text-2xl"></i>
+                                <h1 className="text-2xl font-bold text-white">ProjectFlow</h1>
+                            </div>
+                            <div className="flex gap-4 items-center flex-wrap">
+                                <div className="relative">
+                                    <i className="fas fa-search absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400"></i>
+                                    <input
+                                        type="text"
+                                        placeholder="Search projects..."
+                                        value={searchTerm}
+                                        onChange={(e) => setSearchTerm(e.target.value)}
+                                        className="pl-10 pr-4 py-2 border rounded-lg w-64 focus:outline-none focus:ring-2 focus:ring-purple-300"
+                                    />
+                                </div>
+                                <span className="text-white"><i className="fas fa-user mr-1"></i> {user?.name}</span>
+                                <button onClick={onLogout} className="bg-red-500 hover:bg-red-600 text-white px-4 py-2 rounded-lg transition">
+                                    <i className="fas fa-sign-out-alt mr-1"></i> Logout
+                                </button>
+                            </div>
+                        </div>
+                    </nav>
+                    
+                    <div className="container mx-auto p-8">
+                        <div className="flex justify-between items-center mb-6 flex-wrap gap-4">
+                            <h2 className="text-2xl font-bold text-gray-800">Your Projects</h2>
+                            <button onClick={() => setShowModal(true)} className="btn-hover bg-gradient-to-r from-green-500 to-teal-500 text-white px-6 py-2 rounded-lg font-semibold">
+                                <i className="fas fa-plus mr-1"></i> New Project
+                            </button>
+                        </div>
+                        
+                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                            {filteredProjects.map(p => (
+                                <div key={p.id} onClick={() => onOpenProject(p.id)}
+                                    className="bg-white rounded-xl shadow-lg p-6 cursor-pointer card-hover border-l-8 border-purple-500">
+                                    <div className="flex items-start justify-between">
+                                        <h3 className="text-xl font-bold text-purple-700">{p.name}</h3>
+                                        <i className="fas fa-folder-open text-purple-400 text-2xl"></i>
+                                    </div>
+                                    <p className="text-gray-600 mt-2">{p.description || 'No description'}</p>
+                                    <div className="mt-4 text-sm text-purple-500 font-semibold">
+                                        Click to open <i className="fas fa-arrow-right ml-1"></i>
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
+                        
+                        {filteredProjects.length === 0 && (
+                            <div className="text-center py-12">
+                                <i className="fas fa-folder-open text-gray-300 text-6xl mb-4"></i>
+                                <p className="text-gray-500">No projects found. Create your first project!</p>
+                            </div>
+                        )}
+                    </div>
+                    
+                    {showModal && (
+                        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+                            <div className="bg-white rounded-xl p-6 w-96">
+                                <div className="flex justify-between items-center mb-4">
+                                    <h3 className="text-xl font-bold text-gray-800">Create New Project</h3>
+                                    <button onClick={() => setShowModal(false)} className="text-gray-400 hover:text-gray-600">
+                                        <i className="fas fa-times text-xl"></i>
+                                    </button>
+                                </div>
+                                <form onSubmit={createProject}>
+                                    <input type="text" placeholder="Project Name" value={newProject.name}
+                                        onChange={e => setNewProject({...newProject, name: e.target.value})}
+                                        className="w-full border border-gray-300 rounded-lg p-2 mb-3 focus:outline-none focus:ring-2 focus:ring-purple-500" required />
+                                    <textarea placeholder="Description" value={newProject.description}
+                                        onChange={e => setNewProject({...newProject, description: e.target.value})}
+                                        className="w-full border border-gray-300 rounded-lg p-2 mb-3 focus:outline-none focus:ring-2 focus:ring-purple-500" rows="3" />
+                                    <button type="submit" className="w-full bg-gradient-to-r from-green-500 to-teal-500 text-white py-2 rounded-lg font-semibold">Create Project</button>
+                                    <button type="button" onClick={() => setShowModal(false)} className="w-full mt-2 bg-gray-300 hover:bg-gray-400 py-2 rounded-lg transition">Cancel</button>
+                                </form>
+                            </div>
+                        </div>
+                    )}
+                </div>
+            );
+        };
+        
+        const ProjectBoard = ({ projectId, onBack }) => {
+            const [tasks, setTasks] = useState([]);
+            const [project, setProject] = useState(null);
+            const [showTaskModal, setShowTaskModal] = useState(false);
+            const [showDetailModal, setShowDetailModal] = useState(false);
+            const [selectedTask, setSelectedTask] = useState(null);
+            const [searchTerm, setSearchTerm] = useState('');
+            const [filterPriority, setFilterPriority] = useState('all');
+            const [comments, setComments] = useState([]);
+            const [newComment, setNewComment] = useState('');
+            const [newTask, setNewTask] = useState({ title: '', description: '', priority: 'medium', due_date: '', assigned_to: '' });
+            const [progress, setProgress] = useState(0);
+            
+            useEffect(() => {
+                fetchProject();
+                fetchTasks();
+            }, [projectId]);
+            
+            useEffect(() => {
+                if (tasks.length > 0) {
+                    const doneCount = tasks.filter(t => t.status === 'done').length;
+                    setProgress((doneCount / tasks.length) * 100);
+                }
+            }, [tasks]);
+            
+            const fetchProject = async () => {
+                const token = localStorage.getItem('token');
+                const res = await fetch(API_URL + '/projects/' + projectId, {
+                    headers: { 'x-auth-token': token }
+                });
+                if (res.ok) {
+                    const data = await res.json();
+                    setProject(data);
+                }
+            };
+            
+            const fetchTasks = async () => {
+                const token = localStorage.getItem('token');
+                const res = await fetch(API_URL + '/tasks/project/' + projectId, {
+                    headers: { 'x-auth-token': token }
+                });
+                if (res.ok) {
+                    const data = await res.json();
+                    setTasks(data);
+                }
+            };
+            
+            const fetchComments = async (taskId) => {
+                const token = localStorage.getItem('token');
+                const res = await fetch(API_URL + '/comments/task/' + taskId, {
+                    headers: { 'x-auth-token': token }
+                });
+                if (res.ok) {
+                    const data = await res.json();
+                    setComments(data);
+                }
+            };
+            
+            const createTask = async (e) => {
+                e.preventDefault();
+                const token = localStorage.getItem('token');
+                await fetch(API_URL + '/tasks', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json', 'x-auth-token': token },
+                    body: JSON.stringify({ ...newTask, project_id: parseInt(projectId) })
+                });
+                setShowTaskModal(false);
+                setNewTask({ title: '', description: '', priority: 'medium', due_date: '', assigned_to: '' });
+                fetchTasks();
+            };
+            
+            const updateTask = async () => {
+                const token = localStorage.getItem('token');
+                await fetch(API_URL + '/tasks/' + selectedTask.id, {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json', 'x-auth-token': token },
+                    body: JSON.stringify(selectedTask)
+                });
+                setShowDetailModal(false);
+                fetchTasks();
+            };
+            
+            const addComment = async () => {
+                if (!newComment.trim()) return;
+                const token = localStorage.getItem('token');
+                await fetch(API_URL + '/comments', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json', 'x-auth-token': token },
+                    body: JSON.stringify({ content: newComment, task_id: selectedTask.id })
+                });
+                setNewComment('');
+                fetchComments(selectedTask.id);
+            };
+            
+            const deleteTask = async (taskId) => {
+                if (confirm('Delete this task?')) {
+                    const token = localStorage.getItem('token');
+                    await fetch(API_URL + '/tasks/' + taskId, {
+                        method: 'DELETE',
+                        headers: { 'x-auth-token': token }
+                    });
+                    fetchTasks();
+                }
+            };
+            
+            const updateTaskStatus = async (taskId, newStatus) => {
+                const token = localStorage.getItem('token');
+                await fetch(API_URL + '/tasks/' + taskId, {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json', 'x-auth-token': token },
+                    body: JSON.stringify({ status: newStatus })
+                });
+                fetchTasks();
+            };
+            
+            const columns = ['todo', 'in-progress', 'review', 'done'];
+            const columnNames = { 'todo': 'To Do', 'in-progress': 'In Progress', 'review': 'Review', 'done': 'Done' };
+            const columnIcons = { 'todo': 'fa-tasks', 'in-progress': 'fa-spinner fa-pulse', 'review': 'fa-eye', 'done': 'fa-check-circle' };
+            const columnColors = { 'todo': 'bg-gradient-to-br from-gray-100 to-gray-200', 'in-progress': 'bg-gradient-to-br from-blue-100 to-blue-200', 'review': 'bg-gradient-to-br from-yellow-100 to-orange-100', 'done': 'bg-gradient-to-br from-green-100 to-emerald-200' };
+            
+            const getPriorityColor = (priority) => {
+                if (priority === 'high') return 'bg-gradient-to-r from-red-500 to-pink-500 text-white';
+                if (priority === 'medium') return 'bg-gradient-to-r from-orange-500 to-yellow-500 text-white';
+                return 'bg-gradient-to-r from-green-500 to-teal-500 text-white';
+            };
+            
+            const filteredTasks = tasks.filter(task => {
+                const matchesSearch = task.title.toLowerCase().includes(searchTerm.toLowerCase());
+                const matchesPriority = filterPriority === 'all' || task.priority === filterPriority;
+                return matchesSearch && matchesPriority;
+            });
+            
+            const isOverdue = (dueDate) => {
+                if (!dueDate) return false;
+                return new Date(dueDate) < new Date();
+            };
+            
+            return (
+                <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100">
+                    <nav className="bg-gradient-to-r from-purple-700 to-pink-600 shadow-lg p-4 sticky top-0 z-10">
+                        <div className="container mx-auto flex justify-between items-center flex-wrap gap-4">
+                            <div>
+                                <button onClick={onBack} className="text-white hover:text-gray-200 mr-4 text-lg">
+                                    <i className="fas fa-arrow-left mr-1"></i> Back
+                                </button>
+                                <span className="text-xl font-bold text-white">{project?.name || 'Project'}</span>
+                            </div>
+                            <div className="flex gap-3 flex-wrap">
+                                <div className="relative">
+                                    <i className="fas fa-search absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400"></i>
+                                    <input
+                                        type="text"
+                                        placeholder="Search tasks..."
+                                        value={searchTerm}
+                                        onChange={(e) => setSearchTerm(e.target.value)}
+                                        className="pl-10 pr-4 py-2 border rounded-lg w-48 focus:outline-none focus:ring-2 focus:ring-purple-300"
+                                    />
+                                </div>
+                                <select value={filterPriority} onChange={(e) => setFilterPriority(e.target.value)}
+                                    className="px-3 py-2 border rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-purple-300">
+                                    <option value="all">All Priorities</option>
+                                    <option value="high">High</option>
+                                    <option value="medium">Medium</option>
+                                    <option value="low">Low</option>
+                                </select>
+                                <button onClick={() => setShowTaskModal(true)} className="btn-hover bg-gradient-to-r from-green-500 to-teal-500 text-white px-4 py-2 rounded-lg font-semibold">
+                                    <i className="fas fa-plus mr-1"></i> New Task
+                                </button>
+                            </div>
+                        </div>
+                    </nav>
+                    
+                    <div className="container mx-auto p-4">
+                        {/* Progress Bar */}
+                        <div className="bg-white rounded-xl p-4 mb-6 shadow-lg">
+                            <div className="flex justify-between mb-2">
+                                <span className="font-semibold text-gray-700">Project Progress</span>
+                                <span className="text-purple-600 font-bold">{Math.round(progress)}% Complete</span>
+                            </div>
+                            <div className="w-full bg-gray-200 rounded-full h-4 overflow-hidden">
+                                <div className="bg-gradient-to-r from-purple-500 to-pink-500 h-4 rounded-full transition-all duration-500" style={{ width: `${progress}%` }}></div>
+                            </div>
+                            <div className="flex justify-between mt-2 text-sm text-gray-600">
+                                <span><i className="fas fa-tasks text-purple-600 mr-1"></i> Total: {tasks.length}</span>
+                                <span><i className="fas fa-check-circle text-green-600 mr-1"></i> Done: {tasks.filter(t => t.status === 'done').length}</span>
+                                <span><i className="fas fa-hourglass-half text-orange-600 mr-1"></i> In Progress: {tasks.filter(t => t.status === 'in-progress').length}</span>
+                            </div>
+                        </div>
+                        
+                        <div className="grid grid-cols-1 md:grid-cols-4 gap-4 overflow-x-auto">
+                            {columns.map(status => (
+                                <div key={status} className={`${columnColors[status]} rounded-xl p-4 min-h-[600px] shadow-md`}>
+                                    <h3 className="font-bold mb-3 text-lg text-center text-gray-800">
+                                        <i className={`fas ${columnIcons[status]} mr-2`}></i>
+                                        {columnNames[status]}
+                                        <span className="ml-2 bg-white px-2 py-1 rounded-full text-sm shadow">
+                                            {filteredTasks.filter(t => t.status === status).length}
+                                        </span>
+                                    </h3>
+                                    <div className="space-y-3">
+                                        {filteredTasks.filter(t => t.status === status).map(task => (
+                                            <div key={task.id} 
+                                                onClick={() => {
+                                                    setSelectedTask(task);
+                                                    fetchComments(task.id);
+                                                    setShowDetailModal(true);
+                                                }}
+                                                className="bg-white rounded-xl p-4 shadow-md hover:shadow-2xl transition-all cursor-pointer border-l-8 card-hover"
+                                                style={{ borderLeftColor: task.priority === 'high' ? '#ef4444' : task.priority === 'medium' ? '#f59e0b' : '#10b981' }}>
+                                                <h4 className="font-semibold text-gray-800">{task.title}</h4>
+                                                {task.description && (
+                                                    <p className="text-sm text-gray-600 mt-1 line-clamp-2">{task.description.substring(0, 100)}</p>
+                                                )}
+                                                <div className="mt-3 flex flex-wrap gap-2 justify-between items-center">
+                                                    <div className="flex gap-2 flex-wrap">
+                                                        <span className={`text-xs px-3 py-1 rounded-full font-semibold ${getPriorityColor(task.priority)}`}>
+                                                            <i className="fas fa-flag mr-1"></i> {task.priority}
+                                                        </span>
+                                                        {task.due_date && (
+                                                            <span className={`text-xs px-3 py-1 rounded-full font-semibold ${isOverdue(task.due_date) ? 'bg-red-100 text-red-700' : 'bg-gray-100 text-gray-700'}`}>
+                                                                <i className="fas fa-calendar mr-1"></i> {new Date(task.due_date).toLocaleDateString()}
+                                                                {isOverdue(task.due_date) && <i className="fas fa-exclamation-triangle ml-1"></i>}
+                                                            </span>
+                                                        )}
+                                                    </div>
+                                                    <div className="flex gap-2" onClick={(e) => e.stopPropagation()}>
+                                                        <select 
+                                                            value={task.status}
+                                                            onChange={(e) => updateTaskStatus(task.id, e.target.value)}
+                                                            className="text-xs border rounded-lg px-2 py-1 bg-gray-50 focus:outline-none focus:ring-2 focus:ring-purple-500">
+                                                            <option value="todo">To Do</option>
+                                                            <option value="in-progress">In Progress</option>
+                                                            <option value="review">Review</option>
+                                                            <option value="done">Done</option>
+                                                        </select>
+                                                        <button 
+                                                            onClick={() => deleteTask(task.id)}
+                                                            className="text-red-600 hover:text-red-800 text-sm">
+                                                            <i className="fas fa-trash"></i>
+                                                        </button>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        ))}
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
+                    </div>
+                    
+                    {/* Create Task Modal */}
+                    {showTaskModal && (
+                        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+                            <div className="bg-white rounded-xl p-6 w-96 max-h-screen overflow-y-auto">
+                                <div className="flex justify-between items-center mb-4">
+                                    <h3 className="text-xl font-bold text-gray-800">Create New Task</h3>
+                                    <button onClick={() => setShowTaskModal(false)} className="text-gray-400 hover:text-gray-600">
+                                        <i className="fas fa-times text-xl"></i>
+                                    </button>
+                                </div>
+                                <form onSubmit={createTask}>
+                                    <input type="text" placeholder="Task Title" value={newTask.title}
+                                        onChange={e => setNewTask({...newTask, title: e.target.value})}
+                                        className="w-full border border-gray-300 rounded-lg p-2 mb-3 focus:outline-none focus:ring-2 focus:ring-purple-500" required />
+                                    <textarea placeholder="Description" value={newTask.description}
+                                        onChange={e => setNewTask({...newTask, description: e.target.value})}
+                                        className="w-full border border-gray-300 rounded-lg p-2 mb-3 focus:outline-none focus:ring-2 focus:ring-purple-500" rows="3" />
+                                    <select value={newTask.priority} onChange={e => setNewTask({...newTask, priority: e.target.value})}
+                                        className="w-full border border-gray-300 rounded-lg p-2 mb-3 focus:outline-none focus:ring-2 focus:ring-purple-500">
+                                        <option value="low">Low Priority</option>
+                                        <option value="medium">Medium Priority</option>
+                                        <option value="high">High Priority</option>
+                                    </select>
+                                    <input type="date" placeholder="Due Date" value={newTask.due_date}
+                                        onChange={e => setNewTask({...newTask, due_date: e.target.value})}
+                                        className="w-full border border-gray-300 rounded-lg p-2 mb-3 focus:outline-none focus:ring-2 focus:ring-purple-500" />
+                                    <button type="submit" className="w-full bg-gradient-to-r from-green-500 to-teal-500 text-white py-2 rounded-lg font-semibold">Create Task</button>
+                                    <button type="button" onClick={() => setShowTaskModal(false)} className="w-full mt-2 bg-gray-300 hover:bg-gray-400 py-2 rounded-lg transition">Cancel</button>
+                                </form>
+                            </div>
+                        </div>
+                    )}
+                    
+                    {/* Task Detail Modal */}
+                    {showDetailModal && selectedTask && (
+                        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+                            <div className="bg-white rounded-xl p-6 w-[600px] max-h-[90vh] overflow-y-auto">
+                                <div className="flex justify-between items-center mb-4">
+                                    <h3 className="text-xl font-bold text-gray-800">Task Details</h3>
+                                    <button onClick={() => setShowDetailModal(false)} className="text-gray-400 hover:text-gray-600">
+                                        <i className="fas fa-times text-xl"></i>
+                                    </button>
+                                </div>
+                                
+                                <div className="space-y-4">
+                                    <div>
+                                        <label className="block text-sm font-semibold mb-1 text-gray-700">Title</label>
+                                        <input type="text" value={selectedTask.title} 
+                                            onChange={e => setSelectedTask({...selectedTask, title: e.target.value})}
+                                            className="w-full border border-gray-300 rounded-lg p-2 focus:outline-none focus:ring-2 focus:ring-purple-500" />
+                                    </div>
+                                    
+                                    <div>
+                                        <label className="block text-sm font-semibold mb-1 text-gray-700">Description</label>
+                                        <textarea value={selectedTask.description || ''} 
+                                            onChange={e => setSelectedTask({...selectedTask, description: e.target.value})}
+                                            className="w-full border border-gray-300 rounded-lg p-2 focus:outline-none focus:ring-2 focus:ring-purple-500" rows="3" />
+                                    </div>
+                                    
+                                    <div className="grid grid-cols-2 gap-3">
+                                        <div>
+                                            <label className="block text-sm font-semibold mb-1 text-gray-700">Priority</label>
+                                            <select value={selectedTask.priority} 
+                                                onChange={e => setSelectedTask({...selectedTask, priority: e.target.value})}
+                                                className="w-full border border-gray-300 rounded-lg p-2 focus:outline-none focus:ring-2 focus:ring-purple-500">
+                                                <option value="low">Low</option>
+                                                <option value="medium">Medium</option>
+                                                <option value="high">High</option>
+                                            </select>
+                                        </div>
+                                        <div>
+                                            <label className="block text-sm font-semibold mb-1 text-gray-700">Due Date</label>
+                                            <input type="date" value={selectedTask.due_date || ''} 
+                                                onChange={e => setSelectedTask({...selectedTask, due_date: e.target.value})}
+                                                className="w-full border border-gray-300 rounded-lg p-2 focus:outline-none focus:ring-2 focus:ring-purple-500" />
+                                        </div>
+                                    </div>
+                                    
+                                    <div>
+                                        <label className="block text-sm font-semibold mb-1 text-gray-700">Status</label>
+                                        <select value={selectedTask.status} 
+                                            onChange={e => setSelectedTask({...selectedTask, status: e.target.value})}
+                                            className="w-full border border-gray-300 rounded-lg p-2 focus:outline-none focus:ring-2 focus:ring-purple-500">
+                                            <option value="todo">To Do</option>
+                                            <option value="in-progress">In Progress</option>
+                                            <option value="review">Review</option>
+                                            <option value="done">Done</option>
+                                        </select>
+                                    </div>
+                                    
+                                    <div>
+                                        <label className="block text-sm font-semibold mb-2 text-gray-700">Comments</label>
+                                        <div className="max-h-48 overflow-y-auto mb-3 space-y-2 bg-gray-50 rounded-lg p-3">
+                                            {comments.map(c => (
+                                                <div key={c.id} className="bg-white rounded-lg p-2 shadow-sm">
+                                                    <p className="text-sm">{c.content}</p>
+                                                    <small className="text-gray-500 text-xs">{new Date(c.created_at).toLocaleString()}</small>
+                                                </div>
+                                            ))}
+                                            {comments.length === 0 && <p className="text-gray-400 text-sm text-center">No comments yet</p>}
+                                        </div>
+                                        <div className="flex gap-2">
+                                            <input type="text" value={newComment} 
+                                                onChange={e => setNewComment(e.target.value)}
+                                                placeholder="Write a comment..." 
+                                                className="flex-1 border border-gray-300 rounded-lg p-2 focus:outline-none focus:ring-2 focus:ring-purple-500" />
+                                            <button onClick={addComment} className="bg-gradient-to-r from-purple-500 to-pink-500 text-white px-4 rounded-lg hover:shadow-lg transition">
+                                                <i className="fas fa-paper-plane"></i>
+                                            </button>
+                                        </div>
+                                    </div>
+                                    
+                                    <div className="flex gap-2 pt-3">
+                                        <button onClick={updateTask} className="flex-1 bg-gradient-to-r from-green-500 to-teal-500 text-white py-2 rounded-lg font-semibold hover:shadow-lg transition">
+                                            Save Changes
+                                        </button>
+                                        <button onClick={() => setShowDetailModal(false)} className="flex-1 bg-gray-300 hover:bg-gray-400 py-2 rounded-lg transition">
+                                            Close
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    )}
+                </div>
+            );
+        };
+        
+        const App = () => {
+            const [user, setUser] = useState(null);
+            const [currentProjectId, setCurrentProjectId] = useState(null);
+            
+            useEffect(() => {
+                const savedUser = localStorage.getItem('user');
+                const token = localStorage.getItem('token');
+                if (savedUser && token) {
+                    setUser(JSON.parse(savedUser));
+                }
+            }, []);
+            
+            const handleLogin = (userData) => {
+                setUser(userData);
+                setCurrentProjectId(null);
+            };
+            
+            const handleLogout = () => {
+                localStorage.clear();
+                setUser(null);
+                setCurrentProjectId(null);
+            };
+            
+            if (!user) return <Login onLogin={handleLogin} />;
+            if (currentProjectId) return <ProjectBoard projectId={currentProjectId} onBack={() => setCurrentProjectId(null)} />;
+            return <Dashboard user={user} onLogout={handleLogout} onOpenProject={setCurrentProjectId} />;
+        };
+        
+        ReactDOM.createRoot(document.getElementById('root')).render(<App />);
+    </script>
+</body>
+</html>
