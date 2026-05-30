@@ -1,0 +1,164 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>E-Shop - My Orders</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f5f5f5;
+            padding: 20px;
+        }
+        
+        .container {
+            max-width: 1000px;
+            margin: auto;
+        }
+        
+        h1 {
+            margin-bottom: 30px;
+            color: #333;
+        }
+        
+        .order-card {
+            background: white;
+            border-radius: 10px;
+            padding: 20px;
+            margin-bottom: 20px;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+        }
+        
+        .order-header {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 15px;
+            padding-bottom: 15px;
+            border-bottom: 2px solid #eee;
+        }
+        
+        .order-id {
+            font-size: 18px;
+            font-weight: bold;
+            color: #667eea;
+        }
+        
+        .status {
+            padding: 5px 10px;
+            border-radius: 5px;
+            font-size: 14px;
+            font-weight: bold;
+        }
+        
+        .status-pending {
+            background: #ffc107;
+            color: #333;
+        }
+        
+        .status-completed {
+            background: #28a745;
+            color: white;
+        }
+        
+        .status-processing {
+            background: #17a2b8;
+            color: white;
+        }
+        
+        .status-cancelled {
+            background: #dc3545;
+            color: white;
+        }
+        
+        .order-details {
+            margin-bottom: 10px;
+        }
+        
+        .order-details p {
+            margin: 8px 0;
+            color: #666;
+        }
+        
+        .empty {
+            text-align: center;
+            padding: 50px;
+            background: white;
+            border-radius: 10px;
+        }
+        
+        .nav {
+            background: #333;
+            padding: 15px;
+            margin-bottom: 30px;
+            text-align: center;
+            border-radius: 5px;
+        }
+        
+        .nav a {
+            color: white;
+            text-decoration: none;
+            margin: 0 15px;
+        }
+        
+        .btn {
+            display: inline-block;
+            background: #667eea;
+            color: white;
+            padding: 10px 20px;
+            text-decoration: none;
+            border-radius: 5px;
+            margin-top: 20px;
+        }
+    </style>
+</head>
+<body>
+    <div class="nav">
+        <a href="/">🏠 Home</a>
+        <a href="/cart/">🛒 Cart</a>
+        {% if user.is_authenticated %}
+            <a href="/logout/">🚪 Logout ({{ user.username }})</a>
+        {% else %}
+            <a href="/login/">🔐 Login</a>
+        {% endif %}
+    </div>
+    
+    <div class="container">
+        <h1>📋 My Orders</h1>
+        
+        {% if orders %}
+            {% for order in orders %}
+            <div class="order-card">
+                <div class="order-header">
+                    <span class="order-id">Order #{{ order.id }}</span>
+                    <span class="status status-{{ order.status }}">
+                        {{ order.status|title }}
+                    </span>
+                </div>
+                
+                <!-- THIS IS WHERE YOU PASTE THE CODE -->
+                <div class="order-details">
+                    <p><strong>Order ID:</strong> #{{ order.id }}</p>
+                    <p><strong>Date:</strong> {{ order.created_at|date:"F d, Y" }}</p>
+                    <p><strong>Total Amount:</strong> ₹{{ order.total_amount }}</p>
+                    <p><strong>Shipping Address:</strong> {{ order.shipping_address|linebreaks }}</p>
+                    <p><strong>Phone:</strong> {{ order.phone }}</p>
+                </div>
+                <!-- PASTE ENDS HERE -->
+                
+            </div>
+            {% endfor %}
+        {% else %}
+            <div class="empty">
+                <p>You haven't placed any orders yet.</p>
+                <a href="/" class="btn">Start Shopping 🛍️</a>
+            </div>
+        {% endif %}
+    </div>
+</body>
+</html>
